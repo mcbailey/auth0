@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+          crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp"
+          crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dot/1.1.0/doT.js" type="text/javascript"></script>
+    <style>
+      .fa-spin-custom, .glyphicon-spin {
+        -webkit-animation: spin 1000ms infinite linear;
+        animation: spin 1000ms infinite linear;
+      }
+      @-webkit-keyframes spin {
+        0% {
+          -webkit-transform: rotate(0deg);
+          transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(359deg);
+          transform: rotate(359deg);
+        }
+      }
+      @keyframes spin {
+        0% {
+          -webkit-transform: rotate(0deg);
+          transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(359deg);
+          transform: rotate(359deg);
+        }
+      }
+    </style>
+  </head>
+  <body style="margin:500px;margin-top:200px;">
+      <script type="text/plain" id="login">
+        <div class="panel panel-default"  style="position:absolute;top:20%;left:20%;max-width:400px;">
+            <div class="panel-heading">
+              <h1 class="panel-title">Enter the code sent to {{=it.phone_number}}</h1>
+            </div>
+            <div class="panel-body">
+              <div id="progressbox" class="alert alert-info">
+                <span id="spinner" class="glyphicon glyphicon-refresh glyphicon-spin"></span>
+                <span id="alertbox"></span>
+              </div>
+              <form id="code-form" class="form-inline" action="https://sxwdc-local-bailey.us.webtask.io/sms-mfa?token={{=it.token}}" method="POST">
+                   <input type="hidden" name="token" value="{{=it.token}}" />
+                   <input type="hidden" name="state" value="{{=it.state}}" />
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="glyphicon glyphicon-phone"></i></span>
+                        <input autofocus type="tel" name="code" class="form-control" id="codeInput" placeholder="Your code">
+                    </div>
+                    <button type="submit" class="btn btn-primary">OK</button>
+              </form>
+            </div>
+        </div>
+      </script>
+
+      <script>
+        $(window).load(function() {
+          function showError(error) {
+            $("#alertbox").html(error);
+            $("#progressbox").show();
+            $("#progressbox").removeClass("alert-info");
+            $("#progressbox").addClass("alert-danger");
+          }
+          function showProgress(show) {
+            if (show) {
+              $("#alertbox").html(' hang on...');
+              $("#progressbox").show();
+              $("#spinner").show();
+              $("#progressbox").removeClass("alert-danger");
+              $("#progressbox").addClass("alert-info");
+            } else {
+              $("#progressbox").hide();
+              $("#spinner").hide();
+            }
+          }
+          function queryArgsToJson() {
+            var pairs = window.location.search.substring(1).split("&");
+            var results = {};
+            for (var i in pairs) {
+              if (pairs[i] === "")
+                continue;
+              var pair = pairs[i].split("=");
+              results[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+            }
+            return results;
+          }
+          var templateFn = doT.template($('#login').text());
+          $(document.body).html(templateFn(queryArgsToJson()));
+          $("#progressbox").hide();
+          $("#code-form").submit(function(e) {
+            e.preventDefault();
+            showProgress(true);
+            $.ajax({
+              url: e.currentTarget.action,
+              type: 'post',
+              dataType: 'json',
+              data: $('#code-form').serialize(),
+              success: function(response) {
+                showProgress(false);
+              },
+              error: function(response) {
+                showProgress(false);
+                showError(response.responseText);
+              }
+            });
+          });
+        });
+      </script>
+  </body>
+</html>
